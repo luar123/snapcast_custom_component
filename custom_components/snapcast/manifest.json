@@ -7,6 +7,6 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/luar123/snapcast_custom_component/issues",
   "loggers": ["construct", "snapcast"],
-  "requirements": ["snapcast==2.3.1"],
+  "requirements": ["snapcast==2.3.2"],
   "version": "0.0.0"
 }
