@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 
-from snapcast.control.server import CONTROL_PORT, Snapserver
 import voluptuous as vol
 
 from homeassistant.components.media_player import (
@@ -12,15 +11,14 @@ from homeassistant.components.media_player import (
     MediaPlayerEntityFeature,
     MediaPlayerState,
 )
-
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
-
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+from snapcast.control.server import CONTROL_PORT, Snapserver
 
 from .const import (
     ATTR_LATENCY,
@@ -73,7 +71,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the snapcast config entry."""
-    the_server: Snapserver = hass.data[DOMAIN][config_entry.entry_id].server
+    snapcast_server: Snapserver = hass.data[DOMAIN][config_entry.entry_id].server
 
     register_services()
 
@@ -82,12 +80,11 @@ async def async_setup_entry(
     hpid = f"{host}:{port}"
 
     groups: list[MediaPlayerEntity] = [
-        SnapcastGroupDevice(group, hpid) for group in the_server.groups
+        SnapcastGroupDevice(group, hpid) for group in snapcast_server.groups
     ]
     clients: list[MediaPlayerEntity] = [
-        SnapcastClientDevice(client, hpid) for client in the_server.clients
+        SnapcastClientDevice(client, hpid) for client in snapcast_server.clients
     ]
-
     async_add_entities(clients + groups)
     hass.data[DOMAIN][
         config_entry.entry_id
@@ -105,7 +102,7 @@ async def async_setup_platform(
         hass,
         DOMAIN,
         "deprecated_yaml",
-        breaks_in_ha_version="2022.12.0",
+        breaks_in_ha_version="2023.6.0",
         is_fixable=False,
         severity=IssueSeverity.WARNING,
         translation_key="deprecated_yaml",
@@ -155,20 +152,20 @@ class SnapcastGroupDevice(MediaPlayerEntity):
         """Initialize the Snapcast group device."""
         self._attr_available = True
         self._group = group
-        self.entry_id = None
+        self._entry_id = None
         self._uid = f"{GROUP_PREFIX}{uid_part}_{self._group.identifier}"
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to group events."""
         self._group.set_callback(self.schedule_update_ha_state)
         if self.registry_entry:
-            self.entry_id = self.registry_entry.config_entry_id
-            self.hass.data[DOMAIN][self.entry_id].groups.append(self)
+            self._entry_id = self.registry_entry.config_entry_id
+            self.hass.data[DOMAIN][self._entry_id].groups.append(self)
 
     async def async_will_remove_from_hass(self) -> None:
         """Disconnect group object when removed."""
         self._group.set_callback(None)
-        self.hass.data[DOMAIN][self.entry_id].groups.remove(self)
+        self.hass.data[DOMAIN][self._entry_id].groups.remove(self)
 
     def set_availability(self, available: bool) -> None:
         """Set availability of group."""
@@ -195,7 +192,7 @@ class SnapcastGroupDevice(MediaPlayerEntity):
     @property
     def name(self):
         """Return the name of the device."""
-        return f"{GROUP_PREFIX}{self._group.identifier}"
+        return f"{self._group.friendly_name} {GROUP_SUFFIX}"
 
     @property
     def source(self):
@@ -216,12 +213,6 @@ class SnapcastGroupDevice(MediaPlayerEntity):
     def source_list(self):
         """List of available input sources."""
         return list(self._group.streams_by_name().keys())
-
-    @property
-    def extra_state_attributes(self):
-        """Return the state attributes."""
-        name = f"{self._group.friendly_name} {GROUP_SUFFIX}"
-        return {"friendly_name": name}
 
     async def async_select_source(self, source: str) -> None:
         """Set input source."""
@@ -262,21 +253,22 @@ class SnapcastClientDevice(MediaPlayerEntity):
 
     def __init__(self, client, uid_part):
         """Initialize the Snapcast client device."""
+        self._attr_available = True
         self._client = client
         self._uid = f"{CLIENT_PREFIX}{uid_part}_{self._client.identifier}"
-        self.entry_id = None
+        self._entry_id = None
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to client events."""
         self._client.set_callback(self.schedule_update_ha_state)
         if self.registry_entry:
-            self.entry_id = self.registry_entry.config_entry_id
-            self.hass.data[DOMAIN][self.entry_id].clients.append(self)
+            self._entry_id = self.registry_entry.config_entry_id
+            self.hass.data[DOMAIN][self._entry_id].clients.append(self)
 
     async def async_will_remove_from_hass(self) -> None:
         """Disconnect client object when removed."""
         self._client.set_callback(None)
-        self.hass.data[DOMAIN][self.entry_id].clients.remove(self)
+        self.hass.data[DOMAIN][self._entry_id].clients.remove(self)
 
     def set_availability(self, available: bool) -> None:
         """Set availability of group."""
@@ -299,7 +291,7 @@ class SnapcastClientDevice(MediaPlayerEntity):
     @property
     def name(self):
         """Return the name of the device."""
-        return f"{CLIENT_PREFIX}{self._client.friendly_name}"
+        return f"{self._client.friendly_name} {CLIENT_SUFFIX}"
 
     @property
     def source(self):
@@ -336,8 +328,6 @@ class SnapcastClientDevice(MediaPlayerEntity):
         state_attrs = {}
         if self.latency is not None:
             state_attrs["latency"] = self.latency
-        name = f"{self._client.friendly_name} {CLIENT_SUFFIX}"
-        state_attrs["friendly_name"] = name
         return state_attrs
 
     @property
@@ -366,7 +356,7 @@ class SnapcastClientDevice(MediaPlayerEntity):
         """Join the group of the master player."""
         master_entity = next(
             entity
-            for entity in self.hass.data[DOMAIN][self.entry_id].clients
+            for entity in self.hass.data[DOMAIN][self._entry_id].clients
             if entity.entity_id == master
         )
         if not isinstance(master_entity, SnapcastClientDevice):
