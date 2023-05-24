@@ -27,8 +27,8 @@ Status:
   - Add capabilities: play/stop/etc, metadata, grouping
 - Done:
 - Open upstream PRs:
-  - Server updates: https://github.com/home-assistant/core/pull/93010
 - Merged upstream PRs:
-  - Config flow, HA2023.05: https://github.com/home-assistant/core/pull/80288
-  - Client/Group state, HA2023.05: https://github.com/home-assistant/core/pull/77449
-  - Client/Group names, HA2023.06: https://github.com/home-assistant/core/pull/93116
+  - Config flow, HA2023.5: https://github.com/home-assistant/core/pull/80288
+  - Client/Group state, HA2023.5: https://github.com/home-assistant/core/pull/77449
+  - Client/Group names, HA2023.6: https://github.com/home-assistant/core/pull/93116
+  - Server updates, HA2023.5.5: https://github.com/home-assistant/core/pull/93010
