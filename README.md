@@ -2,8 +2,8 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
-[!WARNING]
-**Outdated! please use the official add-on!**
+> [!CAUTION]
+> **Outdated! please use the official add-on!**
 
 This repo contains the snapcast integration and can be added through HACS. My goal is to use this repo for testing and to allow you to use the new features until they get added to the official integration. I plan to add all features to the official integration, but that takes time.
 
